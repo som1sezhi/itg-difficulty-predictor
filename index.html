@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ITG Stamina Difficulty Predictor</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;;
+      padding: 0.5rem 2rem;
+    }
+
+    .input-row {
+      margin-bottom: 0.25rem;
+    }
+
+    input[type=number] {
+      width: 6rem;
+    }
+
+    #results {
+      padding-top: 0.5rem;
+    }
+
+    #pred-meter {
+      font-weight: bold;
+      color: blue;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin: 0.5rem 0;
+    }
+
+    th, td {
+      text-align: right;
+      border: 1px solid #333;
+      padding: 0.25rem;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>ITG Stamina Difficulty Predictor</h1>
+  <div class="input-row">
+    <label>
+      <input id="input-bpm" type="number" value="174" />
+      BPM
+    </label>
+  </div>
+  <div class="input-row">
+    <label>
+      <input id="input-stream" type="number" value="64" />
+      total stream measures
+    </label>
+  </div>
+  <div class="input-row">
+    <label>
+      <input id="input-density" type="number" value="50" />
+      % stream density (exclude measures before first stream and after last stream)
+    </label>
+  </div>
+  <div id="results">
+    Predicted difficulty: <span id="pred-meter"></span>
+    <table>
+      <thead>
+        <tr>
+          <th>Difficulty</th>
+          <th>Probability</th>
+        </tr>
+      </thead>
+      <tbody id="results-table-body">
+      </tbody>
+    </table>
+    Latent variable: <span id="latent-var-display"></span>
+  </div>
+
+  <h2>About</h2>
+  <p>This predicts the rating of an ITG stamina chart using an ordinal regression model (specifically an ordered logit model). This model was trained and evaluated on the following packs:</p>
+  <ul>
+    <li>SRPG6/7/8/9 base packs (excluding DPRT)</li>
+    <li>ECS11/12/13 (including marathons)</li>
+    <li>SRPG6 New Number Pack unlocks</li>
+  </ul>
+  <p>During evaluation, this kind of model could predict ratings with about a ~70-79% accuracy rate, rarely being off by more than 1 block (~0.2-0.3 MAE in block rating), which I think is pretty decent given its simplicity and interpretability.</p>
+  <p>Some caveats:</p>
+  <ul>
+    <li>This model is unaware of ratings below 11 or above 43</li>
+    <li>You probably shouldn't trust this model with extrapolating beyond its training data (esp. for very low BPM/stream run/density)</li>
+  </ul>
+
+  <script type="text/javascript">
+    "use strict"
+
+    // model prediction -------
+
+    const model = {
+      minMeter: 11,
+      maxMeter: 43,
+      coeffs: [
+        4.956208775849059722e-01,
+        6.391087097536332529e+00,
+        1.888972206039320767e+01
+      ],
+      thresholds: [
+        -Infinity,
+        1.166369672991519195e+02,
+        1.284300306889031162e+02,
+        1.372187935818062670e+02,
+        1.435960635151080567e+02,
+        1.498578751806585387e+02,
+        1.569850980789606467e+02,
+        1.631337352975976671e+02,
+        1.691920593470339327e+02,
+        1.738052939279759528e+02,
+        1.780860131628443526e+02,
+        1.824316704781019780e+02,
+        1.869509347121977214e+02,
+        1.910660292905648134e+02,
+        1.958589660187825814e+02,
+        2.015526617442343991e+02,
+        2.069788615004526378e+02,
+        2.130978821102749521e+02,
+        2.192200208179967547e+02,
+        2.243952957384992999e+02,
+        2.294691584881319102e+02,
+        2.357782037138378541e+02,
+        2.407364187244349694e+02,
+        2.455801080397074543e+02,
+        2.518716818697278654e+02,
+        2.572265762951275292e+02,
+        2.633440796791809362e+02,
+        2.693546794245938827e+02,
+        2.741354141454854698e+02,
+        2.792778693436165440e+02,
+        2.833896728826312028e+02,
+        2.885848567815913270e+02,
+        2.937393549162416662e+02,
+        Infinity
+      ]
+    };
+
+    function logistic(x) {
+      return 1 / (1 + Math.exp(-x));
+    }
+
+    function predict(bpm, stream, density) {
+      stream = Math.log2(stream);
+      density *= 0.01;
+
+      const latent = (
+        model.coeffs[0] * bpm
+        + model.coeffs[1] * stream
+        + model.coeffs[2] * density
+      );
+
+      const cumProbs = model.thresholds.map(
+        (threshold) => logistic(threshold - latent)
+      );
+
+      const probs = [];
+      for (let i = 0; i < cumProbs.length - 1; i++) {
+        probs.push(cumProbs[i + 1] - cumProbs[i]);
+      }
+
+      return { latent, probs };
+    }
+
+    // results displaying --------
+
+    function getById(id) {
+      return document.getElementById(id);
+    }
+
+    const predMeterDisplay = getById("pred-meter");
+    const latentVarDisplay = getById("latent-var-display");
+    const resultsTableBody = getById("results-table-body");
+
+    function update() {
+      const { latent, probs } = predict(input.bpm, input.stream, input.density);
+      const meterAndProbs = probs.map(
+        (p, i) => [i + model.minMeter, p]
+      );
+      // sort in descending order of probability
+      meterAndProbs.sort((a, b) => b[1] - a[1]);
+
+      // display most likely difficulty
+      predMeterDisplay.innerText = meterAndProbs[0][0].toString();
+
+      resultsTableBody.textContent = ""; // clear
+      meterAndProbs.slice(0, 5).forEach(([meter, prob]) => {
+        const row = document.createElement("tr");
+
+        const cell1 = document.createElement("td");
+        cell1.innerText = meter.toString();
+
+        const cell2 = document.createElement("td");
+        const percent = prob * 100;
+        cell2.innerText = (percent).toFixed(3) + "%";
+        cell2.style.background =
+          `linear-gradient(-90deg, #04f4 ${percent}%, #0000 ${percent}%)`;
+
+        row.appendChild(cell1);
+        row.appendChild(cell2);
+        resultsTableBody.appendChild(row);
+      });
+
+      latentVarDisplay.innerText = latent.toString();
+    }
+
+    // handling input -----------
+
+    const inputBoxes = {
+      bpm: getById("input-bpm"),
+      stream: getById("input-stream"),
+      density: getById("input-density")
+    };
+    const inputValidators = {
+      bpm: (bpm) => isFinite(bpm) && bpm > 0,
+      stream: (stream) => isFinite(stream) && stream > 0,
+      density: (density) => isFinite(density) && density > 0 && density <= 100
+    };
+    const inputKeys = ["bpm", "stream", "density"];
+
+    const input = {
+      bpm: 174,
+      stream: 64,
+      density: 50
+    };
+
+    inputKeys.forEach((key) => {
+      const inputBox = inputBoxes[key];
+      inputBox.addEventListener("change", (e) => {
+        const val = +e.target.value;
+        if (inputValidators[key](val)) {
+          input[key] = val;
+          update();
+        } else {
+          e.target.value = input[key].toString();
+        }
+      })
+    });
+
+    document.addEventListener("DOMContentLoaded", (e) => {
+      inputKeys.forEach((key) => {
+        const inputBox = inputBoxes[key];
+        const val = +inputBox.value;
+        if (inputValidators[key](val)) {
+          input[key] = val;
+        } else {
+          e.target.value = input[key].toString();
+        }
+      });
+      update();
+    })
+
+  </script>
+</body>
+
+</html>
