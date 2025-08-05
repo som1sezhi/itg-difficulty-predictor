@@ -77,7 +77,7 @@
   </div>
 
   <h2>About</h2>
-  <p>This predicts the rating of an ITG stamina chart using an ordinal regression model (specifically an ordered logit model). This model was trained and evaluated on the following packs:</p>
+  <p>This tool predicts the rating of an ITG stamina chart using an ordinal regression model (specifically an ordered logit model). This model was trained and evaluated on the following packs:</p>
   <ul>
     <li>SRPG6/7/8/9 base packs (excluding DPRT)</li>
     <li>ECS11/12/13 (including marathons)</li>
@@ -87,7 +87,9 @@
   <p>Some caveats:</p>
   <ul>
     <li>This model is unaware of ratings below 11 or above 43</li>
-    <li>You probably shouldn't trust this model with extrapolating beyond its training data (esp. for very low BPM/stream run/density)</li>
+    <li>This model only uses a few chart features, so it can't take things like patterns, unbroken stream length, break density, etc. into account</li>
+    <li>You likely shouldn't trust this model with extrapolating beyond its training data (esp. for very low BPM/stream run/density)</li>
+    <li>Probably some other stuff IDK I'm not an ML guy</li>
   </ul>
 
   <script type="text/javascript">
