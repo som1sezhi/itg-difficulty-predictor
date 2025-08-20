@@ -6,3 +6,5 @@ packs
 pack_archive
 *.csv
 !dataset.csv
+!rnn_dataset.csv
+!rnn2_dataset.csv

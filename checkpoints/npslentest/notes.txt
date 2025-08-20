@@ -1,0 +1,34 @@
+1.
+basic rnn, hidden=128
+300 epochs, batchsize=64, lr=6e-5
+Train Error: Accuracy: 36.2%, Avg loss: 1.555670, maybe still decreasing a bit
+test acc: 0.3633440514469453
+
+2.
+lstm2, 128, 128
+300, 64, 3e-4
+Train Error: Accuracy: 61.4%, Avg loss: 0.394418
+test acc: 0.5964630225080386
+
+3.
+lstm2, 256, 256
+300, 64, 3e-4
+Train Error: Accuracy: 65.5%, Avg loss: 0.313048
+test acc: 0.590032154340836
+
+4.
+lstm2, 128, 128, augmented data
+300, 64, 3e-4
+Epoch 297
+Train Error: Accuracy: 73.6%, Avg loss: 0.223057
+Test Error: Accuracy: 69.6%, Avg loss: 0.258076
+Epoch 298
+Train Error: Accuracy: 73.0%, Avg loss: 0.226510
+Test Error: Accuracy: 72.4%, Avg loss: 0.239634
+Epoch 299
+Train Error: Accuracy: 71.2%, Avg loss: 0.244646
+Test Error: Accuracy: 71.3%, Avg loss: 0.261452
+Epoch 300
+Train Error: Accuracy: 72.3%, Avg loss: 0.242227
+Test Error: Accuracy: 67.4%, Avg loss: 0.289783
+still kinda bad at not deflating the difficulty when confronted with 0nps blocks at start and end

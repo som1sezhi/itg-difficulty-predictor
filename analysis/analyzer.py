@@ -30,6 +30,7 @@ SOFTWARE.
 """
 
 from typing import Dict, List, Literal, Tuple, Iterable, FrozenSet, Iterator
+import math
 from dataclasses import dataclass
 from itertools import zip_longest
 from functools import cached_property
@@ -498,6 +499,10 @@ class ChartAnalyzer:
                 measure_bpms.append(0)
             start_t = end_t
         
+        npm_bpm_pairs = list(zip_longest(
+            self.notes_per_measure, measure_bpms, fillvalue=0
+        ))
+        
         # try to build up stream runs for all the following quants
         quants = (32, 24, 20, 16)
         stream_runs = {q: [] for q in quants}
@@ -506,9 +511,7 @@ class ChartAnalyzer:
         min_bpm: dict[int, float | None] = {q: None for q in quants}
         max_bpm: dict[int, float | None] = {q: None for q in quants}
         accum_bpm: dict[int, float] = {q: 0 for q in quants}
-        for i, (count, bpm) in enumerate(zip_longest(
-            self.notes_per_measure, measure_bpms, fillvalue=0
-        )):
+        for i, (count, bpm) in enumerate(npm_bpm_pairs):
             for q in quants:
                 if count >= q:
                     # this is a stream measure
@@ -577,5 +580,37 @@ class ChartAnalyzer:
             'bpms': [min_bpm[q], max_bpm[q]],
             'avg_bpm': accum_bpm[q] / total_stream if total_stream else None,
             'total_stream': total_stream,
-            'total_break': total_break
+            'total_break': total_break,
+            'npm_bpm_pairs': npm_bpm_pairs
         }
+    
+    def get_notes_per_second_list(self) -> List[int]:
+        grouped_notes = self._filter_groups_by_type(
+            self.hittables, frozenset((
+                NoteType.TAP,
+                NoteType.HOLD_HEAD,
+                NoteType.ROLL_HEAD,
+            ))
+        )
+
+        # get number of notes per second
+        count_per_second = []
+        next_second = math.ceil(self.engine.time_at(Beat(0)))
+        cur_second_count = 0
+        for note_row in grouped_notes:
+            beat = note_row[0].beat
+            time = self.engine.time_at(beat)
+            # if we've exited the current second,
+            # finish the count for that second and advance
+            if time >= next_second:
+                count_per_second.append(cur_second_count)
+                cur_second_count = 0
+                next_second += 1
+                while time - next_second >= 1:
+                    count_per_second.append(0)
+                    next_second += 1
+            cur_second_count += 1
+        # append final second
+        count_per_second.append(cur_second_count)
+
+        return count_per_second
