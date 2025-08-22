@@ -8,3 +8,4 @@ pack_archive
 !dataset.csv
 !rnn_dataset.csv
 !rnn2_dataset.csv
+!nn_dataset.csv

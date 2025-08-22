@@ -1,0 +1,64 @@
+1.
+RatingMonotonicNN(512, 512, 8), None, 3e-4
+batchsize=64
+Epoch 4500
+Train Error: Accuracy: 69.9%, Avg loss: 0.300825
+Test Error: Accuracy: 65.0%, Avg loss: 0.283928
+0.6845310596833131
+
+2.
+RatingMonotonicNN(512, 512, 8), None, 3e-3
+batchsize=64
+Epoch 4500
+Train Error: Accuracy: 72.8%, Avg loss: 0.274135
+Test Error: Accuracy: 67.1%, Avg loss: 0.258843
+0.6942752740560292
+- looks like it arrived at approx the same solution, just faster
+
+3.
+RatingDeepMonotonicNN([512, 512, 512], 8), None, 3e-3
+batchsize=64
+Epoch 4500
+Train Error: Accuracy: 73.4%, Avg loss: 0.271032
+Test Error: Accuracy: 67.7%, Avg loss: 0.258484
+0.6979293544457978
+
+4.
+slightly changed data handling with avg nps in empty bin, and added
+a few super long marathons to the training data
+RatingMonotonicNN(512, 512, 8), None, 3e-3,
+batchsize=64
+Epoch 4500
+Train Error: Accuracy: 73.2%, Avg loss: 0.232700
+Test Error: Accuracy: 69.1%, Avg loss: 0.249766
+51m 27s
+0.7101096224116931
+
+5.
+i fixed the accuracy percent calc so we can't really compare
+these to prev values
+RatingDeepMonotonicNN([1024, 256, 256, 32, 32], 16), None, 1e-2
+Epoch 4500
+Train Error: Accuracy: 73.2%, Avg loss: 0.232386
+Test Error: Accuracy: 72.6%, Avg loss: 0.272484
+took quite a long time to train
+0.7429963946342468
+
+6.
+now with scaler
+RatingDeepMonotonicNN([512, 512], 8), scaler, 1e-2
+Epoch 4500
+Train Error: Accuracy: 53.3%, Avg loss: 0.597844
+Test Error: Accuracy: 52.0%, Avg loss: 0.675202
+686m 7.6s (<- is this reliable? idk this was overnight)
+0.5371498465538025
+why does it do worse with scaling?
+
+7.
+use minmax scaler
+RatingDeepMonotonicNN([512, 512], 8), scaler, 1e-2
+Epoch 1000
+Train Error: Accuracy: 4.7%, Avg loss: 37.173941
+Test Error: Accuracy: 3.5%, Avg loss: 37.031559
+0.0718635842204094
+wtf terrible

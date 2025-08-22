@@ -481,7 +481,8 @@ class ChartAnalyzer:
                 'bpms': [None, None],
                 'avg_bpm': None,
                 'total_stream': 0,
-                'total_break': 0
+                'total_break': 0,
+                'npm_bpm_pairs': []
             }
 
         # calculate the bpm of each measure based on the measure's duration
@@ -504,15 +505,15 @@ class ChartAnalyzer:
         ))
         
         # try to build up stream runs for all the following quants
-        quants = (32, 24, 20, 16)
-        stream_runs = {q: [] for q in quants}
+        densities = (32, 24, 20, 18, 16, 15, 12, 9, 8, 6, 4, 3, 2, 1)
+        stream_runs = {q: [] for q in densities}
         # keep track of measure bpms ourselves (i'd like to not rely on 
         # displaybpm, see e.g. "Stamina RPG 7 - FE/Burning Throb")
-        min_bpm: dict[int, float | None] = {q: None for q in quants}
-        max_bpm: dict[int, float | None] = {q: None for q in quants}
-        accum_bpm: dict[int, float] = {q: 0 for q in quants}
+        min_bpm: dict[int, float | None] = {q: None for q in densities}
+        max_bpm: dict[int, float | None] = {q: None for q in densities}
+        accum_bpm: dict[int, float] = {q: 0 for q in densities}
         for i, (count, bpm) in enumerate(npm_bpm_pairs):
-            for q in quants:
+            for q in densities:
                 if count >= q:
                     # this is a stream measure
                     runs = stream_runs[q]
@@ -533,6 +534,8 @@ class ChartAnalyzer:
                         min_bpm[q] = min(min_bpm[q], bpm)
                         max_bpm[q] = max(max_bpm[q], bpm)
                     accum_bpm[q] += bpm
+        
+        quants = (32, 24, 20, 16, 12, 8, 4, 2, 1)
         
         # figure out what quant to use for the breakdown.
         # similar to zmod, this will be the first of (32nds, 24ths, 20ths) 
@@ -584,7 +587,7 @@ class ChartAnalyzer:
             'npm_bpm_pairs': npm_bpm_pairs
         }
     
-    def get_notes_per_second_list(self) -> List[int]:
+    def get_notes_per_second_list(self, offset=0) -> List[int]:
         grouped_notes = self._filter_groups_by_type(
             self.hittables, frozenset((
                 NoteType.TAP,
@@ -595,7 +598,7 @@ class ChartAnalyzer:
 
         # get number of notes per second
         count_per_second = []
-        next_second = math.ceil(self.engine.time_at(Beat(0)))
+        next_second = math.ceil(self.engine.time_at(Beat(0))) + offset
         cur_second_count = 0
         for note_row in grouped_notes:
             beat = note_row[0].beat
@@ -609,7 +612,7 @@ class ChartAnalyzer:
                 while time - next_second >= 1:
                     count_per_second.append(0)
                     next_second += 1
-            cur_second_count += 1
+            cur_second_count += len(note_row)
         # append final second
         count_per_second.append(cur_second_count)
 

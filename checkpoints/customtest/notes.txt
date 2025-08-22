@@ -1,0 +1,11 @@
+2.
+lstmcustom, 128, 128, lr=3e-4
+300 epochs, batchsize=64
+Train Error: Accuracy: 60.6%, Avg loss: 0.436682
+Test Error: Accuracy: 58.2%, Avg loss: 0.563549
+loss dropped pretty fast but leveled off around 0.5
+best model:
+Epoch 279
+Train Error: Accuracy: 60.7%, Avg loss: 0.417182
+Test Error: Accuracy: 61.4%, Avg loss: 0.520405
+Saving best model at checkpoints/customtest/model2_best.pt

@@ -1,0 +1,52 @@
+1.
+500, 500, no scheduling, lr=3e-4
+4500 epochs, 64 batchsize
+Train Error: Accuracy: 95.0%, Avg loss: 0.058086
+Test Error: Accuracy: 49.0%, Avg loss: 0.785034
+
+2.
+256, 256, no scheduling, lr=3e-4
+1441 epochs, 64 batchsize
+Train Error: Accuracy: 89.0%, Avg loss: 0.098653
+Test Error: Accuracy: 66.9%, Avg loss: 0.329816
+best test acc: 0.7459807073954984
+
+3.
+RatingMLPDropout(500, 500, 0.2), None, 3e-4
+4500, 64
+Train Error: Accuracy: 61.5%, Avg loss: 0.539155
+Test Error: Accuracy: 71.1%, Avg loss: 0.303625
+best test acc: 0.747588424437299
+
+4.
+new percent stream data, dropped block length data
+RatingMLP(256, 256), None, 3e-4
+1250, 64
+Train Error: Accuracy: 80.1%, Avg loss: 0.163688
+Test Error: Accuracy: 75.9%, Avg loss: 0.237839
+best test acc: 0.7636655948553055
+
+5.
+same as 4. but with (128, 128) size instead
+2023 epochs
+Train Error: Accuracy: 78.3%, Avg loss: 0.189315
+Test Error: Accuracy: 73.6%, Avg loss: 0.255888
+best test acc: 0.770096463022508
+
+6.
+RatingMLPOneHidden(128), None, 3e-4
+4500 epochs
+Train Error: Accuracy: 75.4%, Avg loss: 0.212544
+Test Error: Accuracy: 75.1%, Avg loss: 0.239947
+best test acc: 0.7684887459807074
+
+7.
+now with scaling
+RatingMLP(128, 128), scaler, 3e-4
+
+8.
+RatingMLPOneHidden(256), scaler, 3e-4
+4500 epochs
+Train Error: Accuracy: 87.0%, Avg loss: 0.120222
+Test Error: Accuracy: 69.5%, Avg loss: 0.283801
+best test acc: 0.7395498392282959

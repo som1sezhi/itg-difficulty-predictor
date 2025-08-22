@@ -1,0 +1,45 @@
+1.
+RatingMLPOneHidden(256), scaler, 3e-4
+2004, 32
+Train Error: Accuracy: 83.1%, Avg loss: 0.139395
+Test Error: Accuracy: 70.9%, Avg loss: 0.245709
+best 0.7411575562700965
+
+2.
+same params but with more data and init'ing the bias
+Epoch 698
+Train Error: Accuracy: 78.6%, Avg loss: 0.208837
+Test Error: Accuracy: 70.0%, Avg loss: 0.259569
+best 0.7161997563946407
+
+3.
+RatingMLPOneHidden(128), scaler, 3e-4
+batchsize might be 64 now
+Epoch 1817
+Train Error: Accuracy: 78.9%, Avg loss: 0.209724
+Test Error: Accuracy: 67.4%, Avg loss: 0.269445
+0.6991473812423873
+
+4.
+RatingMLPOneHidden(128), None, 3e-4
+batchsize=64
+Epoch 4500
+Train Error: Accuracy: 72.1%, Avg loss: 0.269762
+Test Error: Accuracy: 67.1%, Avg loss: 0.287936
+0.6784409257003654
+
+5.
+RatingMLP(500, 500), None, 3e-4
+batchsize=64
+Epoch 4500
+Train Error: Accuracy: 94.3%, Avg loss: 0.088174
+Test Error: Accuracy: 63.2%, Avg loss: 0.393054
+0.6869671132764921
+looks like more data was able to decrease the test error
+
+6.
+RatingMLP(256, 256), None, 3e-4
+Epoch 4500
+Train Error: Accuracy: 91.3%, Avg loss: 0.112389
+Test Error: Accuracy: 60.8%, Avg loss: 0.474647
+0.6845310596833131
