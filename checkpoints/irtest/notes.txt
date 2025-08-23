@@ -1,0 +1,48 @@
+1.
+    RatingDeepMLP([512, 512])
+    lambda p: torch.optim.Adam(p, lr=6e-4)
+    1000, 64
+    scaler=None
+    use_lds=True
+Epoch 1000
+Train Error: Accuracy: 74.1%, Avg loss: 0.079886
+Test Error: Accuracy: 65.0%, Avg loss: 0.315332
+- note: weighted loss is not comparable to unweighted loss?
+0.745432436466217 @ 879
+
+2.
+same as above without lds
+Epoch 1000
+Train Error: Accuracy: 79.0%, Avg loss: 0.170243
+Test Error: Accuracy: 69.2%, Avg loss: 0.261996
+0.7515225410461426 @ 309
+idk if it did much
+
+3.
+    RatingDeepMonotonicNN([512, 256, 256, 32, 32], 16),
+    lambda p: torch.optim.Adam(p, lr=1e-1),
+    1000, 64,
+    scaler=None,
+    scheduler_fn=lambda optim: torch.optim.lr_scheduler.OneCycleLR(
+        optim, max_lr=2.5, steps_per_epoch=len(X_train)//64, epochs=1000
+    ),
+    use_lds=False
+Epoch 1000 (last lr=2.21e-05)
+Train Error: Accuracy: 50.5%, Avg loss: 0.621453
+Test Error: Accuracy: 50.1%, Avg loss: 0.679537
+0.6065773963928223 @ 194
+
+4.
+    same as above without scheduler and with use_lds=True
+Epoch 1000
+Train Error: Accuracy: 66.8%, Avg loss: 0.098509
+Test Error: Accuracy: 66.6%, Avg loss: 0.328085
+0.6820950508117676 @ 929
+
+trained (4) to 4000 epochs
+Epoch 4000
+Train Error: Accuracy: 61.9%, Avg loss: 0.110078
+Test Error: Accuracy: 69.5%, Avg loss: 0.281761
+in the graph, a very slight improvement can be seen throughout
+0.7125456929206848 @ 3777
+
