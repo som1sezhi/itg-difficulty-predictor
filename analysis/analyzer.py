@@ -617,3 +617,17 @@ class ChartAnalyzer:
         count_per_second.append(cur_second_count)
 
         return count_per_second
+    
+    def get_note_times(self) -> Iterator[float]:
+        grouped_notes = self._filter_groups_by_type(
+            self.hittables, frozenset((
+                NoteType.TAP,
+                NoteType.HOLD_HEAD,
+                NoteType.ROLL_HEAD,
+            ))
+        )
+        for note_row in grouped_notes:
+            beat = note_row[0].beat
+            time = self.engine.time_at(beat)
+            for note in note_row:
+                yield time
