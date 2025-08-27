@@ -1,0 +1,48 @@
+1.
+        MonoDense(512, activation='elu'),
+        MonoDense(512, activation='elu'),
+        MonoDense(1)
+Adam(learning_rate=3e-4)
+bs=64, epochs=1000
+loss: 0.3264 - acc: 0.6495 - val_loss: 0.2888 - val_acc: 0.6912
+best val_acc=0.70560
+
+2.
+        MonoDense(256, activation='elu'),
+        MonoDense(256, activation='elu'),
+        MonoDense(1)
+otherwise same settings as above
+loss: 0.3459 - acc: 0.6517 - val_loss: 0.2879 - val_acc: 0.6792
+best 0.70199
+
+3.
+same as above but with lr=1e-3
+keras.callbacks.EarlyStopping(monitor="val_loss", patience=100),
+early stop at epoch 936
+loss: 0.3444 - acc: 0.6371 - val_loss: 0.2752 - val_acc: 0.7044
+best 0.70825
+
+4.
+same as above but with new data (float nps)
+early stop at epoch 825
+loss: 0.3297 - acc: 0.6586 - val_loss: 0.3533 - val_acc: 0.6267
+best 0.69358
+
+5.
+        MonoDense(512, activation='elu'),
+        MonoDense(512, activation='elu'),
+        MonoDense(1)
+Adam(learning_rate=3e-4)
+early stop at epoch 848
+loss: 0.3538 - acc: 0.6301 - val_loss: 0.2950 - val_acc: 0.6638
+best: 0.69743
+
+6.
+        MonoDense(256, activation='elu'),
+        MonoDense(256, activation='elu'),
+        MonoDense(1)
+Adam(learning_rate=3e-4)
+early stop at epoch 929
+loss: 0.3090 - acc: 0.6772 - val_loss: 0.2935 - val_acc: 0.6332
+best: 0.69022
+
