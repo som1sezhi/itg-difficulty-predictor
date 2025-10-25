@@ -2,7 +2,7 @@ import math
 from typing import Iterable, Iterator
 from collections import deque
 
-SPACING = 0.5
+SPACING = 1
 SUPPORT_RADIUS = 1.5 * SPACING
 def _kernel(x):
     x = (x / SPACING) + 1.5

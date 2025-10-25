@@ -1,0 +1,36 @@
+before data changes (accidentally trained with old data, oops)
+but with 
+
+1.
+RatingDeepMonotonicNN([512, 512], 8),
+torch.optim.Adam(p, lr=1e-1),
+batchsize 64
+scaler=None
+3000 epochs
+best: 0.7295981049537659 2539
+
+2.
+RatingDeepMonotonicNN([512, 512, 512], 8),
+all else same
+3000 epochs
+best 0.7369062304496765 1882
+
+bigger sampling window, unbroken info too
+=====
+3.
+same as 1 but with lr=1.29e-1
+best 0.7247259616851807 2717
+
+4.
+same as 2 but with lr=1.29e-1
+best 0.7332521677017212 2785
+
+remove extra features
+====================
+5.
+same as 1, with lr=1e-1
+best 0.7515225410461426 0.2341555505990982 2604
+
+6.
+same as 2
+best 0.7429963946342468 0.23877772688865662 2753
