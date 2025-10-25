@@ -9,6 +9,7 @@ pack_archive
 !rnn_dataset.csv
 !rnn2_dataset.csv
 !nn_dataset.csv
+!seq_dataset.csv
 logs/
 tuner/
 checkpoints/tb
