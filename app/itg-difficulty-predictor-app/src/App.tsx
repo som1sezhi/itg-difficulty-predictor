@@ -1,9 +1,12 @@
-import { useMemo, useState, type ChangeEvent } from "react";
-import "./App.css";
+import { useMemo, useState, type ChangeEvent, type ReactNode } from "react";
 import { Simfile } from "./simfile/Simfile";
-import { SeqModelResultsDisplay } from "./components/SeqModelResultsDisplay";
+import { SeqModelDisplay } from "./components/SeqModelDisplay";
 import { ChartAnalyzer } from "./ChartAnalyzer";
 import type { Chart } from "./simfile/Chart";
+import "./App.css";
+import Markdown from "react-markdown";
+import seqModelDesc from "./descriptions/seq-model-desc.md?raw";
+import { SimpleModelDisplay } from "./components/SimpleModelDisplay";
 
 function chartDiffStr(chart: Chart): string {
   switch (chart.difficulty) {
@@ -23,15 +26,18 @@ function chartDiffStr(chart: Chart): string {
 }
 
 function App() {
+  const [model, setModel] = useState<"simple" | "seq">("seq");
   const [sim, setSim] = useState<Simfile | null>(null);
-  const [chartIdx, setChartIdx] = useState<number>(0);
+  const [chartIdx, setChartIdx] = useState<number>(-1);
 
   const analyzers = useMemo(
-    () => sim && sim.charts.map((chart) => new ChartAnalyzer(sim, chart)),
+    () =>
+      sim &&
+      sim.charts
+        .filter((chart) => chart.stepsType === "dance-single")
+        .map((chart) => new ChartAnalyzer(sim, chart)),
     [sim]
   );
-
-  if (analyzers) console.log([...analyzers[chartIdx].noteTimesIterator()]);
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -43,33 +49,82 @@ function App() {
       file.text().then((text) => {
         const sim = new Simfile(text, ext);
         setSim(sim);
-        setChartIdx((idx) => Math.min(idx, sim.charts.length - 1));
+        const singlesCharts = sim.charts.filter(
+          (chart) => chart.stepsType === "dance-single"
+        );
+        setChartIdx((idx) =>
+          Math.min(Math.max(0, idx), singlesCharts.length - 1)
+        );
       });
     }
   };
 
+  let modelDisplay: ReactNode;
+  if (model === "simple") {
+    modelDisplay = (
+      <SimpleModelDisplay
+        analyzer={analyzers ? analyzers[chartIdx] : undefined}
+      />
+    );
+  } else {
+    // model === "seq"
+    if (!sim) {
+      modelDisplay = "Please upload a simfile to use this model.";
+    } else if (!analyzers) {
+      modelDisplay =
+        "The uploaded simfile does not contain any singles charts.";
+    } else {
+      modelDisplay = <SeqModelDisplay analyzer={analyzers[chartIdx]} />;
+    }
+  }
+
   return (
     <>
       <h1>ITG Difficulty Predictor</h1>
-      <input id="file" type="file" onChange={onFileChange} />
+      <div className="row">
+        <label>
+          Select a model:
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value as typeof model)}
+          >
+            <option value="simple">Simple (3-feature) model</option>
+            <option value="seq">Density sequence model</option>
+          </select>
+        </label>
+      </div>
+      <div className="row">
+        Upload a simfile:
+        <input id="file" type="file" onChange={onFileChange} />
+      </div>
       {sim && (
-        <div>
-          <label>
-            Select a chart:
-            <select
-              value={chartIdx}
-              onChange={(e) => setChartIdx(Number(e.target.value))}
-            >
-              {sim.charts.map((chart, i) => (
-                <option key={i} value={i}>
-                  {chartDiffStr(chart)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <>
+          <hr />
+          <div className="row title-row">
+            <span className="artist">{sim.artist} - </span>
+            <span className="title">{sim.title}</span>
+            {sim.subtitle && <span className="subtitle"> {sim.subtitle}</span>}
+          </div>
+          <div className="row">
+            <label>
+              Select a chart:
+              <select
+                value={chartIdx}
+                onChange={(e) => setChartIdx(Number(e.target.value))}
+              >
+                {sim.charts.map((chart, i) => (
+                  <option key={i} value={i}>
+                    {chartDiffStr(chart)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </>
       )}
-      {analyzers && <SeqModelResultsDisplay analyzer={analyzers[chartIdx]} />}
+      {modelDisplay}
+      <hr />
+      <Markdown>{seqModelDesc}</Markdown>
     </>
   );
 }

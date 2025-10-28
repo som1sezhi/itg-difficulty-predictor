@@ -1,3 +1,5 @@
+import { weightedAvg, type MeterProba } from "./common";
+
 const params = {
   // parms for part 1
   expBase: 2.387,
@@ -65,7 +67,7 @@ function getExhaust(npsSeq: number[]): number[] {
   for (const nps of npsSeq) {
     cumSum += nps;
 
-    ret.push((exhaust + params.overallExhaustFac * Math.log(cumSum)) * 0.01);
+    ret.push(exhaust + params.overallExhaustFac * Math.log(cumSum));
 
     if (nps <= params.cp) {
       // recovery
@@ -92,7 +94,7 @@ function calcDiffScore(npsSeq: number[]): {
 
   for (let i = 0; i < npsSeq.length; i++) {
     const nps = npsSeq[i];
-    const exhaust = 1 + exhaustArr[i];
+    const exhaust = 1 + exhaustArr[i] * 0.01;
     sum += Math.pow(params.expBase, nps * exhaust);
     scoreArr.push(Math.log(sum));
   }
@@ -139,11 +141,6 @@ function getExtrapLogistic(meter: number): Logistic {
   );
 }
 
-interface MeterProba {
-  meter: number;
-  proba: number;
-}
-
 function predictProba(
   score: number,
   extrapolate: boolean = true
@@ -171,27 +168,28 @@ function predictProba(
   return probas;
 }
 
+function predictMeter(score: number) {
+  return weightedAvg(predictProba(score, true)) + 0.5;
+}
+
 export interface SeqModelResult {
   pred: number;
   probas: MeterProba[];
   score: number;
   exhaustArr: number[];
-  scoreArr: number[];
+  meterArr: number[];
 }
 
 export function seqModelPredict(npsSeq: number[]): SeqModelResult {
   const { score, exhaustArr, scoreArr } = calcDiffScore(npsSeq);
   const probas = predictProba(score, true);
   // weighted sum
-  const pred = probas.reduce(
-    (accum, entry) => accum + entry.meter * entry.proba,
-    0
-  );
+  const pred = weightedAvg(probas) + 0.5;
   return {
     pred,
     probas,
     score,
     exhaustArr,
-    scoreArr,
+    meterArr: scoreArr.map(predictMeter),
   };
 }

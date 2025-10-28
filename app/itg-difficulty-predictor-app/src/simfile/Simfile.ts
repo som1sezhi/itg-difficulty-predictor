@@ -31,6 +31,10 @@ export class Simfile {
   charts: Chart[] = [];
   sscVersion?: number;
 
+  title: string;
+  subtitle: string;
+  artist: string;
+
   offset: number;
   bpms: BPMSegment[];
   stops: StopSegment[];
@@ -140,6 +144,11 @@ export class Simfile {
     this.charts.sort(
       (a, b) => stepsTypeKey(a) - stepsTypeKey(b) || a.difficulty - b.difficulty
     );
+
+    // fill in metadata
+    this.title = simfileProps.TITLE?.[0] ?? "unknown";
+    this.subtitle = simfileProps.SUBTITLE?.[0] ?? "";
+    this.artist = simfileProps.ARTIST?.[0] ?? "Unknown artist";
   }
 
   // for .sm files, process negative bpms

@@ -36,7 +36,8 @@ export function findLessOrEqual<T, K>(
   return bisectRight(seq, x, key, cmp) - 1;
 }
 
-const ROWS_PER_BEAT = 48;
+export const ROWS_PER_BEAT = 48;
+export const ROWS_PER_MEASURE = ROWS_PER_BEAT * 4;
 
 export function beatToRowUnrounded(beat: number): number {
   return beat * ROWS_PER_BEAT;

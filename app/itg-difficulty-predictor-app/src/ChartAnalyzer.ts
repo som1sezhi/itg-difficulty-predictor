@@ -3,6 +3,7 @@ import { NoteTypes, type Note } from "./simfile/Note";
 import type { Simfile } from "./simfile/Simfile";
 import { TimingData } from "./simfile/TimingData";
 import { TimingEngine } from "./simfile/TimingEngine";
+import { ROWS_PER_MEASURE } from "./simfile/utils";
 
 const SPACING = 1;
 const SUPPORT_RADIUS = 1.5 * SPACING;
@@ -58,20 +59,9 @@ export function* npsSeqIterator(
   }
 }
 
-export function* noteTimesIterator(
-  notes: Iterable<Note>,
-  engine: TimingEngine
-): Generator<number> {
-  for (const note of notes) {
-    const t = note.noteType;
-    if (
-      (t === NoteTypes.TAP ||
-        t === NoteTypes.HOLD_HEAD ||
-        t === NoteTypes.ROLL_HEAD) &&
-      engine.hittable(note.row)
-    )
-      yield engine.timeAt(note.row);
-  }
+export interface StreamRun {
+  start: number;
+  len: number;
 }
 
 export class ChartAnalyzer {
@@ -80,8 +70,10 @@ export class ChartAnalyzer {
   timingData: TimingData;
   engine: TimingEngine;
 
+  private hittables?: Note[];
   private noteTimes?: number[];
   private npsSeq?: number[];
+  private notesPerMeasure?: number[];
 
   constructor(sim: Simfile, chart: Chart) {
     this.sim = sim;
@@ -90,12 +82,32 @@ export class ChartAnalyzer {
     this.engine = new TimingEngine(this.timingData);
   }
 
-  *noteTimesIterator() {
-    yield* noteTimesIterator(this.chart.notesIterator(), this.engine);
+  getHittables() {
+    if (this.hittables) return this.hittables;
+
+    function* generator(notes: Iterable<Note>, engine: TimingEngine) {
+      for (const note of notes) {
+        const t = note.noteType;
+        if (
+          (t === NoteTypes.TAP ||
+            t === NoteTypes.HOLD_HEAD ||
+            t === NoteTypes.ROLL_HEAD) &&
+          engine.hittable(note.row)
+        )
+          yield note;
+      }
+    }
+
+    this.hittables = [...generator(this.chart.notesIterator(), this.engine)];
+    return this.hittables;
   }
 
   getNoteTimes(): number[] {
-    if (!this.noteTimes) this.noteTimes = [...this.noteTimesIterator()];
+    if (!this.noteTimes) {
+      this.noteTimes = this.getHittables().map((note) =>
+        this.engine.timeAt(note.row)
+      );
+    }
     return this.noteTimes;
   }
 
@@ -104,5 +116,107 @@ export class ChartAnalyzer {
       this.npsSeq = [...npsSeqIterator(this.getNoteTimes())];
     }
     return this.npsSeq;
+  }
+
+  getNotesPerMeasure(): number[] {
+    if (this.notesPerMeasure !== undefined) return this.notesPerMeasure;
+
+    this.notesPerMeasure = [];
+    let curMeasureStart = 0;
+    let curMeasureCount = 0;
+    for (const { row } of this.getHittables()) {
+      if (row >= curMeasureStart + ROWS_PER_MEASURE) {
+        this.notesPerMeasure.push(curMeasureCount);
+        curMeasureCount = 0;
+        curMeasureStart += ROWS_PER_MEASURE;
+        while (row - curMeasureStart >= ROWS_PER_MEASURE) {
+          this.notesPerMeasure.push(0);
+          curMeasureStart += ROWS_PER_MEASURE;
+        }
+      }
+      curMeasureCount++;
+    }
+    this.notesPerMeasure.push(curMeasureCount);
+
+    return this.notesPerMeasure;
+  }
+
+  getStreamInfo() {
+    const npmSeq = this.getNotesPerMeasure();
+    const numMeasures = npmSeq.length;
+
+    const measureBpms = [];
+    let startTime = this.engine.timeAt(0);
+    for (let i = 0; i < numMeasures; i++) {
+      const endRow = (i + 1) * ROWS_PER_MEASURE;
+      const endTime = this.engine.timeAt(endRow);
+      const measureLen = endTime - startTime;
+      if (measureLen !== 0) {
+        measureBpms.push(240 / measureLen);
+      } else {
+        measureBpms.push(0); // fallback to avoid division by 0
+      }
+      startTime = endTime;
+    }
+
+    const quants = [32, 24, 20, 16];
+    const streamRuns: Record<number, StreamRun[]> = {};
+    const minBpm: Record<number, number | null> = {};
+    const maxBpm: Record<number, number | null> = {};
+    const accumBpm: Record<number, number> = {};
+    for (const q of quants) {
+      streamRuns[q] = [];
+      minBpm[q] = null;
+      maxBpm[q] = null;
+      accumBpm[q] = 0;
+    }
+    for (let i = 0; i < numMeasures; i++) {
+      const count = npmSeq[i];
+      const bpm = measureBpms[i];
+      for (const q of quants) {
+        if (count >= q) {
+          // this is a stream measure
+          const runs = streamRuns[q];
+          const lastRun: StreamRun | undefined = runs[runs.length - 1];
+          if (lastRun && lastRun.start + lastRun.len === i) {
+            lastRun.len++;
+          } else {
+            runs.push({ start: i, len: 1 });
+          }
+
+          if (minBpm[q] === null) {
+            minBpm[q] = maxBpm[q] = bpm;
+          } else {
+            minBpm[q] = Math.min(minBpm[q], bpm);
+            maxBpm[q] = Math.max(maxBpm[q]!, bpm);
+          }
+          accumBpm[q] += bpm;
+        }
+      }
+    }
+
+    let q: number = 0;
+    let totalStream = 0;
+    for (q of quants) {
+      totalStream = streamRuns[q].reduce((accum, run) => accum + run.len, 0);
+      const entireChartDensity = totalStream / numMeasures;
+      if (entireChartDensity >= 0.1) break;
+    }
+
+    const runs = streamRuns[q];
+    let adjustedMeasureCount = 0;
+    if (runs.length > 0) {
+      const lastRun = runs[runs.length - 1];
+      adjustedMeasureCount = lastRun.start + lastRun.len - runs[0].start;
+    }
+    const totalBreak = adjustedMeasureCount - totalStream;
+
+    return {
+      quant: q,
+      totalStream,
+      totalBreak,
+      bpms: [minBpm[q], maxBpm[q]],
+      avgBpm: totalStream > 0 ? accumBpm[q] / totalStream : null,
+    };
   }
 }
