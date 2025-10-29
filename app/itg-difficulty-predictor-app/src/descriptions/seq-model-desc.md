@@ -88,7 +88,7 @@ The training process is basically just a black-box global optimizer (specificall
 
 Originally, the binary classifiers were a full-on ordinal regession layer, but fitting those to the data turned out to take a really long time, so I switched to a bunch of independent classifiers instead. There wasn't really much danger of the logistic thresholds becoming out of order anyway.
 
-### Limitations/problems
+### Limitations/problems I found
 
 - Patterns don't affect difficulty predictions
 - This model seems to underrate super long hard stuff. For example, it gives [21] XS Project Collection Full a rating of 18.51.
