@@ -219,4 +219,21 @@ export class ChartAnalyzer {
       avgBpm: totalStream > 0 ? accumBpm[q] / totalStream : null,
     };
   }
+
+  getDiffStr() {
+    switch (this.chart.difficulty) {
+      case 0:
+        return `Novice ${this.chart.meter}`;
+      case 1:
+        return `Easy ${this.chart.meter}`;
+      case 2:
+        return `Medium ${this.chart.meter}`;
+      case 3:
+        return `Hard ${this.chart.meter}`;
+      case 4:
+        return `Expert ${this.chart.meter}`;
+      case 5:
+        return `Edit ${this.chart.meter}`;
+    }
+  }
 }

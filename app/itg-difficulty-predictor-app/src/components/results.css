@@ -49,3 +49,7 @@ table.probas td {
   font-weight: bold;
   color: blue;
 }
+
+.error {
+  color: #f50;
+}

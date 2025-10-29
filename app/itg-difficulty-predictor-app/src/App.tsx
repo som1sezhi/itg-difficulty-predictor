@@ -1,42 +1,26 @@
-import { useMemo, useState, type ChangeEvent, type ReactNode } from "react";
+import { useReducer, useState, type ChangeEvent, type ReactNode } from "react";
 import { Simfile } from "./simfile/Simfile";
 import { SeqModelDisplay } from "./components/SeqModelDisplay";
 import { ChartAnalyzer } from "./ChartAnalyzer";
-import type { Chart } from "./simfile/Chart";
 import "./App.css";
 import Markdown from "react-markdown";
 import seqModelDesc from "./descriptions/seq-model-desc.md?raw";
 import { SimpleModelDisplay } from "./components/SimpleModelDisplay";
-
-function chartDiffStr(chart: Chart): string {
-  switch (chart.difficulty) {
-    case 0:
-      return `Novice ${chart.meter}`;
-    case 1:
-      return `Easy ${chart.meter}`;
-    case 2:
-      return `Medium ${chart.meter}`;
-    case 3:
-      return `Hard ${chart.meter}`;
-    case 4:
-      return `Expert ${chart.meter}`;
-    case 5:
-      return `Edit ${chart.meter}`;
-  }
-}
+import {
+  SimpleModelDisplayContext,
+  simpleModelDisplayInitState,
+  simpleModelDisplayReducer,
+} from "./components/SimpleModelDisplayContext";
 
 function App() {
   const [model, setModel] = useState<"simple" | "seq">("seq");
   const [sim, setSim] = useState<Simfile | null>(null);
+  const [analyzers, setAnalyzers] = useState<ChartAnalyzer[]>([]);
   const [chartIdx, setChartIdx] = useState<number>(-1);
 
-  const analyzers = useMemo(
-    () =>
-      sim &&
-      sim.charts
-        .filter((chart) => chart.stepsType === "dance-single")
-        .map((chart) => new ChartAnalyzer(sim, chart)),
-    [sim]
+  const [simpleModelState, simpleModelDispatch] = useReducer(
+    simpleModelDisplayReducer,
+    simpleModelDisplayInitState
   );
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -49,28 +33,46 @@ function App() {
       file.text().then((text) => {
         const sim = new Simfile(text, ext);
         setSim(sim);
-        const singlesCharts = sim.charts.filter(
-          (chart) => chart.stepsType === "dance-single"
+        const analyzers = sim.charts
+          .filter((chart) => chart.stepsType === "dance-single")
+          .map((chart) => new ChartAnalyzer(sim, chart));
+        setAnalyzers(analyzers);
+        // NOTE: chartIdx might have a stale value here, but at least the
+        // new value should never be invalid
+        const newChartIdx = Math.min(
+          Math.max(0, chartIdx),
+          analyzers.length - 1
         );
-        setChartIdx((idx) =>
-          Math.min(Math.max(0, idx), singlesCharts.length - 1)
-        );
+        setChartIdx(newChartIdx);
+        simpleModelDispatch({
+          type: "analysisReq",
+          analyzer: analyzers[newChartIdx],
+        });
       });
     }
+  };
+
+  const onChartChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const newChartIdx = Number(e.target.value);
+    setChartIdx(newChartIdx);
+    simpleModelDispatch({
+      type: "analysisReq",
+      analyzer: analyzers[newChartIdx],
+    });
   };
 
   let modelDisplay: ReactNode;
   if (model === "simple") {
     modelDisplay = (
       <SimpleModelDisplay
-        analyzer={analyzers ? analyzers[chartIdx] : undefined}
+        analyzer={analyzers.length > 0 ? analyzers[chartIdx] : undefined}
       />
     );
   } else {
     // model === "seq"
     if (!sim) {
       modelDisplay = "Please upload a simfile to use this model.";
-    } else if (!analyzers) {
+    } else if (analyzers.length === 0) {
       modelDisplay =
         "The uploaded simfile does not contain any singles charts.";
     } else {
@@ -82,8 +84,12 @@ function App() {
     <>
       <h1>ITG Difficulty Predictor</h1>
       <div className="row">
+        Upload a simfile:
+        <input id="file" type="file" onChange={onFileChange} />
+      </div>
+      <div className="row">
         <label>
-          Select a model:
+          Select a prediction model:
           <select
             value={model}
             onChange={(e) => setModel(e.target.value as typeof model)}
@@ -92,10 +98,6 @@ function App() {
             <option value="seq">Density sequence model</option>
           </select>
         </label>
-      </div>
-      <div className="row">
-        Upload a simfile:
-        <input id="file" type="file" onChange={onFileChange} />
       </div>
       {sim && (
         <>
@@ -108,13 +110,10 @@ function App() {
           <div className="row">
             <label>
               Select a chart:
-              <select
-                value={chartIdx}
-                onChange={(e) => setChartIdx(Number(e.target.value))}
-              >
-                {sim.charts.map((chart, i) => (
+              <select value={chartIdx} onChange={onChartChange}>
+                {analyzers.map((analyzer, i) => (
                   <option key={i} value={i}>
-                    {chartDiffStr(chart)}
+                    {analyzer.getDiffStr()}
                   </option>
                 ))}
               </select>
@@ -122,7 +121,14 @@ function App() {
           </div>
         </>
       )}
-      {modelDisplay}
+      <hr />
+
+      <SimpleModelDisplayContext
+        value={[simpleModelState, simpleModelDispatch]}
+      >
+        {modelDisplay}
+      </SimpleModelDisplayContext>
+
       <hr />
       <Markdown>{seqModelDesc}</Markdown>
     </>

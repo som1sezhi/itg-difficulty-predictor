@@ -6,7 +6,6 @@ import {
   useEffect,
   type KeyboardEventHandler,
   type InputHTMLAttributes,
-  type WheelEventHandler,
 } from "react";
 import "./NumberInput.css";
 
@@ -64,6 +63,7 @@ export function NumberInput({
   }, []);
 
   // scroll to change value
+  /*
   const onWheel = useCallback<WheelEventHandler<HTMLInputElement>>(
     (e) => {
       let newVal = value - Math.sign(e.deltaY) * step;
@@ -74,6 +74,7 @@ export function NumberInput({
     },
     [min, max, value, step, onChange]
   );
+  */
 
   return (
     <input
@@ -89,7 +90,6 @@ export function NumberInput({
       onChange={handleChange}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
-      onWheel={onWheel}
     />
   );
 }
