@@ -5,7 +5,7 @@ export function ProbasTable({ probas }: { probas: MeterProba[] }) {
     <table className="probas">
       <thead>
         <tr>
-          <th>Meter</th>
+          <th>Rating</th>
           <th>Probability</th>
         </tr>
       </thead>

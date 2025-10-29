@@ -51,7 +51,7 @@ export function simpleModelDisplayReducer(
         return { ...state, errNoStream: true };
       }
       const mult = info.quant / 16;
-      const bpm = Math.round(info.avgBpm! * 100) / 100;
+      const bpm = Math.round(info.avgBpm! * mult * 100) / 100;
       const stream = info.totalStream * mult;
       const density =
         Math.round(

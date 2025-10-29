@@ -146,10 +146,14 @@ export function SeqModelDisplay({ analyzer }: { analyzer: ChartAnalyzer }) {
           yLabel="Exhaustion factor"
           data={info.exhaustArr}
         />
-        <Graph xLabel="Time (s)" yLabel="Meter" data={info.meterArr} />
+        <Graph
+          xLabel="Time (s)"
+          yLabel="Predicted rating"
+          data={info.meterArr}
+        />
       </div>
       <div className="right-pane">
-        Predicted meter:
+        Predicted rating:
         <br />
         <span className="pred-meter">{info.pred.toFixed(2)}</span>
         {` (${predLevel} ${roundedPred})`}

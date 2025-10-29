@@ -95,7 +95,7 @@ function calcDiffScore(npsSeq: number[]): {
   for (let i = 0; i < npsSeq.length; i++) {
     const nps = npsSeq[i];
     const exhaust = 1 + exhaustArr[i] * 0.01;
-    sum += Math.pow(params.expBase, nps * exhaust);
+    sum += Math.pow(params.expBase, nps * exhaust) - 1;
     scoreArr.push(Math.log(sum));
   }
 

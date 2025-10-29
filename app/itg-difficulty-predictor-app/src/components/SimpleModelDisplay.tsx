@@ -80,7 +80,7 @@ export function SimpleModelDisplay({ analyzer }: { analyzer?: ChartAnalyzer }) {
         </div>
       </div>
       <div className="right-pane">
-        Predicted meter:
+        Predicted rating:
         <br />
         <span className="pred-meter">{info.pred.toFixed(2)}</span>
         {` (${predLevel} ${roundedPred})`}

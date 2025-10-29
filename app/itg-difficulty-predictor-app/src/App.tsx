@@ -4,6 +4,7 @@ import { SeqModelDisplay } from "./components/SeqModelDisplay";
 import { ChartAnalyzer } from "./ChartAnalyzer";
 import "./App.css";
 import Markdown from "react-markdown";
+import simpleModelDesc from "./descriptions/simple-model-desc.md?raw";
 import seqModelDesc from "./descriptions/seq-model-desc.md?raw";
 import { SimpleModelDisplay } from "./components/SimpleModelDisplay";
 import {
@@ -11,6 +12,9 @@ import {
   simpleModelDisplayInitState,
   simpleModelDisplayReducer,
 } from "./components/SimpleModelDisplayContext";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 function App() {
   const [model, setModel] = useState<"simple" | "seq">("seq");
@@ -130,7 +134,9 @@ function App() {
       </SimpleModelDisplayContext>
 
       <hr />
-      <Markdown>{seqModelDesc}</Markdown>
+      <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+        {model === "simple" ? simpleModelDesc : seqModelDesc}
+      </Markdown>
     </>
   );
 }

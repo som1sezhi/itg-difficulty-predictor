@@ -36,6 +36,7 @@ table.probas {
   margin: 0.5rem 0;
   width: 100%;
   max-width: 14rem;
+  line-height: 1.25;
 }
 
 table.probas th,
