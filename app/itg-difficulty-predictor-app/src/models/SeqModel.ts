@@ -146,10 +146,13 @@ function predictProba(
   extrapolate: boolean = true
 ): MeterProba[] {
   let regs: Logistic[];
+  let lBound = 0;
   if (extrapolate) {
-    regs = modelLogistics.slice(0, 35);
     const approxMeter = scoreToApproxMeter(score);
-    for (let m = 35; m < approxMeter + 5; m++) regs.push(getExtrapLogistic(m));
+    if (approxMeter > 40) lBound = Math.floor(approxMeter - 5);
+    regs = modelLogistics.slice(lBound, 35);
+    for (let m = Math.max(35, lBound); m < approxMeter + 5; m++)
+      regs.push(getExtrapLogistic(m));
   } else {
     regs = modelLogistics;
   }
@@ -162,9 +165,12 @@ function predictProba(
   for (; i < classProbas.length - 1; i++) {
     const p1 = classProbas[i];
     const p2 = classProbas[i + 1];
-    probas.push({ meter: i + 2, proba: p1 - p2 });
+    probas.push({ meter: lBound + i + 2, proba: p1 - p2 });
   }
-  probas.push({ meter: i + 2, proba: classProbas[classProbas.length - 1] });
+  probas.push({
+    meter: lBound + i + 2,
+    proba: classProbas[classProbas.length - 1],
+  });
   return probas;
 }
 

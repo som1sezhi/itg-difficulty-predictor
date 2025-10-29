@@ -13,8 +13,9 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.input-row {
-  margin-bottom: 0.25rem;
+.row.flex-row {
+  display: flex;
+  gap: 1rem;
 }
 
 input, select {

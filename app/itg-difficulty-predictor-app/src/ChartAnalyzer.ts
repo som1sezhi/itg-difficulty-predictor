@@ -111,11 +111,19 @@ export class ChartAnalyzer {
     return this.noteTimes;
   }
 
-  getNPSSeq(): number[] {
-    if (!this.npsSeq) {
-      this.npsSeq = [...npsSeqIterator(this.getNoteTimes())];
+  getNPSSeq(rateMod: number = 1): number[] {
+    if (rateMod === 1) {
+      if (!this.npsSeq) {
+        this.npsSeq = [...npsSeqIterator(this.getNoteTimes())];
+      }
+      return this.npsSeq;
     }
-    return this.npsSeq;
+
+    function* generator(iter: Iterable<number>) {
+      for (const t of iter) yield t / rateMod;
+    }
+
+    return [...npsSeqIterator(generator(this.getNoteTimes()))];
   }
 
   getNotesPerMeasure(): number[] {
