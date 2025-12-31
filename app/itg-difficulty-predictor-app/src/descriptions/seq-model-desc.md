@@ -9,6 +9,16 @@ This tool predicts the difficulty rating of an ITG chart using an incredibly ad-
 
 This model does a bit worse than the simple 3-feature model in terms of raw numbers/statistics; it has about 70% accuracy on the training set, with a ~0.4 MAE in block rating. (I'm lazy so I didn't bother doing a train/test split.) I like this model better than the simple model though, since it works on a wider variety of charts, not just stamina/16ths stream. I also gave this model the ability to extrapolate to ratings higher than 43, so that's cool I guess.
 
+### Limitations/problems I found
+
+- Patterns don't affect difficulty predictions
+  - This means that tech (XO, FS, BR, DS, etc.), rhythms, candle usage, etc. are not taken into account by this model.
+- This model seems to underrate super long hard stuff. For example, it gives [21] XS Project Collection Full a rating of 18.51.
+- This model cannot assign ratings lower than 1.5 (due to the +0.5 shift).
+- Probably some other stuff IDK I'm not an ML guy
+
+Remember that even under ideal conditions for this model (i.e. techless stream), this model is only around 70% accurate. Use this model as a first-order approximation at most, and be sure to consult ratings of charts similar to yours to decide on a final rating for your chart.
+
 ### "Difficulty score" calculation
 
 Let $\{d_i\}_{i=1}^N$ be a sequence of NPS density values for the chart. The "difficulty score" $S$ is calculated as follows:
@@ -86,10 +96,4 @@ I used the following packs to train this model:
 
 The training process is basically just a black-box global optimizer (specifically `scipy.optimize.direct`) minimizing a function that calculates $S$ for all charts in the training data, uses those scores to train the binary classifiers, then returns the resulting MAE for the training data. The idea here was that a better model should give a better "separation" between classes for the binary classifiers, which would somehow be reflected in a lower MAE? I have no idea how sound this training process is, to be quite honest.
 
-Originally, the binary classifiers were a full-on ordinal regession layer, but fitting those to the data turned out to take a really long time, so I switched to a bunch of independent classifiers instead. There wasn't really much danger of the logistic thresholds becoming out of order anyway.
-
-### Limitations/problems I found
-
-- Patterns don't affect difficulty predictions
-- This model seems to underrate super long hard stuff. For example, it gives [21] XS Project Collection Full a rating of 18.51.
-- Probably some other stuff IDK I'm not an ML guy
+Originally, the binary classifiers were a full-on ordinal regression layer, but fitting those to the data turned out to take a really long time, so I switched to a bunch of independent classifiers instead. There wasn't really much danger of the logistic thresholds becoming out of order anyway.
