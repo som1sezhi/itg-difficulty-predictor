@@ -5,6 +5,8 @@ import { TimingData } from "./simfile/TimingData";
 import { TimingEngine } from "./simfile/TimingEngine";
 import { ROWS_PER_MEASURE } from "./simfile/utils";
 
+export type JumpsHandlingMode = "individual" | "jumps" | "brackets";
+
 const SPACING = 1;
 const SUPPORT_RADIUS = 1.5 * SPACING;
 
@@ -70,20 +72,37 @@ export class ChartAnalyzer {
   timingData: TimingData;
   engine: TimingEngine;
 
-  private hittables?: Note[];
+  private jumpsMode: JumpsHandlingMode;
+
+  private hittableRows?: number[];
   private noteTimes?: number[];
   private npsSeq?: number[];
   private notesPerMeasure?: number[];
 
-  constructor(sim: Simfile, chart: Chart) {
+  constructor(sim: Simfile, chart: Chart, jumpsMode: JumpsHandlingMode) {
     this.sim = sim;
     this.chart = chart;
+    this.jumpsMode = jumpsMode;
     this.timingData = new TimingData(sim, chart);
     this.engine = new TimingEngine(this.timingData);
   }
 
-  getHittables() {
-    if (this.hittables) return this.hittables;
+  getJumpsMode() {
+    return this.jumpsMode;
+  }
+
+  setJumpsMode(jumpsMode: JumpsHandlingMode) {
+    if (this.jumpsMode !== jumpsMode) {
+      // invalidate cached sequences that depend on jumpsMode
+      this.npsSeq = undefined;
+      this.notesPerMeasure = undefined;
+
+      this.jumpsMode = jumpsMode;
+    }
+  }
+
+  getHittableRows() {
+    if (this.hittableRows) return this.hittableRows;
 
     function* generator(notes: Iterable<Note>, engine: TimingEngine) {
       for (const note of notes) {
@@ -94,27 +113,54 @@ export class ChartAnalyzer {
             t === NoteTypes.ROLL_HEAD) &&
           engine.hittable(note.row)
         )
-          yield note;
+          yield note.row;
       }
     }
 
-    this.hittables = [...generator(this.chart.notesIterator(), this.engine)];
-    return this.hittables;
+    this.hittableRows = [...generator(this.chart.notesIterator(), this.engine)];
+    return this.hittableRows;
   }
 
   getNoteTimes(): number[] {
     if (!this.noteTimes) {
-      this.noteTimes = this.getHittables().map((note) =>
-        this.engine.timeAt(note.row)
+      this.noteTimes = this.getHittableRows().map((row) =>
+        this.engine.timeAt(row)
       );
     }
     return this.noteTimes;
   }
 
+  private *groupSameValues(vals: Iterable<number>) {
+    let curVal: number | null = null;
+    let curValCount = 1;
+    for (const val of vals) {
+      if (this.jumpsMode === "individual") {
+        // count each value individually
+        yield val;
+      } else {
+        if (curVal === val) {
+          curValCount++;
+        } else {
+          curVal = val;
+          curValCount = 1;
+        }
+        // jumps mode -> count 1st and 2nd occurrences
+        // brackets mode -> count 1st and 3rd occurrences
+        let doYield = curValCount === 1;
+        if (this.jumpsMode === "jumps") doYield ||= curValCount === 2;
+        else if (this.jumpsMode === "brackets") doYield ||= curValCount === 3;
+
+        if (doYield) yield val;
+      }
+    }
+  }
+
   getNPSSeq(rateMod: number = 1): number[] {
     if (rateMod === 1) {
       if (!this.npsSeq) {
-        this.npsSeq = [...npsSeqIterator(this.getNoteTimes())];
+        this.npsSeq = [
+          ...npsSeqIterator(this.groupSameValues(this.getNoteTimes())),
+        ];
       }
       return this.npsSeq;
     }
@@ -123,7 +169,9 @@ export class ChartAnalyzer {
       for (const t of iter) yield t / rateMod;
     }
 
-    return [...npsSeqIterator(generator(this.getNoteTimes()))];
+    return [
+      ...npsSeqIterator(generator(this.groupSameValues(this.getNoteTimes()))),
+    ];
   }
 
   getNotesPerMeasure(): number[] {
@@ -132,7 +180,7 @@ export class ChartAnalyzer {
     this.notesPerMeasure = [];
     let curMeasureStart = 0;
     let curMeasureCount = 0;
-    for (const { row } of this.getHittables()) {
+    for (const row of this.groupSameValues(this.getHittableRows())) {
       if (row >= curMeasureStart + ROWS_PER_MEASURE) {
         this.notesPerMeasure.push(curMeasureCount);
         curMeasureCount = 0;
@@ -145,7 +193,6 @@ export class ChartAnalyzer {
       curMeasureCount++;
     }
     this.notesPerMeasure.push(curMeasureCount);
-
     return this.notesPerMeasure;
   }
 

@@ -10,7 +10,7 @@ import {
   Title,
   Tooltip,
 } from "chart.js";
-import { ChartAnalyzer } from "../ChartAnalyzer";
+import { ChartAnalyzer, type JumpsHandlingMode } from "../ChartAnalyzer";
 import { Line } from "react-chartjs-2";
 import { useMemo, useState } from "react";
 import { seqModelPredict } from "../models/SeqModel";
@@ -104,13 +104,19 @@ function Graph({
   );
 }
 
-export function SeqModelDisplay({ analyzer }: { analyzer: ChartAnalyzer }) {
+export function SeqModelDisplay({
+  analyzer,
+  jumpsMode,
+}: {
+  analyzer: ChartAnalyzer;
+  jumpsMode: JumpsHandlingMode;
+}) {
   const [rateMod, setRateMod] = useState<number>(1);
   const [useEBPM, setUseEBPM] = useState<boolean>(false);
-  const npsSeq = useMemo(
-    () => analyzer.getNPSSeq(rateMod),
-    [analyzer, rateMod]
-  );
+  const npsSeq = useMemo(() => {
+    analyzer.setJumpsMode(jumpsMode);
+    return analyzer.getNPSSeq(rateMod);
+  }, [analyzer, rateMod, jumpsMode]);
   const info = useMemo(() => seqModelPredict(npsSeq), [npsSeq]);
 
   const probas = info.probas.sort((a, b) => b.proba - a.proba).slice(0, 5);

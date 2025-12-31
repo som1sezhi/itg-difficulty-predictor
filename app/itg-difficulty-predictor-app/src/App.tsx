@@ -1,7 +1,7 @@
 import { useReducer, useState, type ChangeEvent, type ReactNode } from "react";
 import { Simfile } from "./simfile/Simfile";
 import { SeqModelDisplay } from "./components/SeqModelDisplay";
-import { ChartAnalyzer } from "./ChartAnalyzer";
+import { ChartAnalyzer, type JumpsHandlingMode } from "./ChartAnalyzer";
 import "./App.css";
 import Markdown from "react-markdown";
 import simpleModelDesc from "./descriptions/simple-model-desc.md?raw";
@@ -21,6 +21,7 @@ function App() {
   const [sim, setSim] = useState<Simfile | null>(null);
   const [analyzers, setAnalyzers] = useState<ChartAnalyzer[]>([]);
   const [chartIdx, setChartIdx] = useState<number>(-1);
+  const [jumpsMode, setJumpsMode] = useState<JumpsHandlingMode>("individual");
 
   const [simpleModelState, simpleModelDispatch] = useReducer(
     simpleModelDisplayReducer,
@@ -39,7 +40,7 @@ function App() {
         setSim(sim);
         const analyzers = sim.charts
           .filter((chart) => chart.stepsType === "dance-single")
-          .map((chart) => new ChartAnalyzer(sim, chart));
+          .map((chart) => new ChartAnalyzer(sim, chart, jumpsMode));
         setAnalyzers(analyzers);
         // NOTE: chartIdx might have a stale value here, but at least the
         // new value should never be invalid
@@ -48,6 +49,8 @@ function App() {
           analyzers.length - 1
         );
         setChartIdx(newChartIdx);
+        // NOTE: newChartIdx can be -1 if analyzers is empty. This is ok since
+        // the analysisReq action can take in an undefined analyzer.
         simpleModelDispatch({
           type: "analysisReq",
           analyzer: analyzers[newChartIdx],
@@ -59,9 +62,20 @@ function App() {
   const onChartChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newChartIdx = Number(e.target.value);
     setChartIdx(newChartIdx);
+    analyzers[newChartIdx]?.setJumpsMode(jumpsMode);
     simpleModelDispatch({
       type: "analysisReq",
       analyzer: analyzers[newChartIdx],
+    });
+  };
+
+  const onJumpsModeChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const newJumpsMode = e.target.value as JumpsHandlingMode;
+    setJumpsMode(newJumpsMode);
+    analyzers[chartIdx]?.setJumpsMode(newJumpsMode);
+    simpleModelDispatch({
+      type: "analysisReq",
+      analyzer: analyzers[chartIdx],
     });
   };
 
@@ -80,7 +94,9 @@ function App() {
       modelDisplay =
         "The uploaded simfile does not contain any singles charts.";
     } else {
-      modelDisplay = <SeqModelDisplay analyzer={analyzers[chartIdx]} />;
+      modelDisplay = (
+        <SeqModelDisplay analyzer={analyzers[chartIdx]} jumpsMode={jumpsMode} />
+      );
     }
   }
 
@@ -120,6 +136,23 @@ function App() {
                     {analyzer.getDiffStr()}
                   </option>
                 ))}
+              </select>
+            </label>
+          </div>
+          <div className="row">
+            <label>
+              Jump/bracket handling behavior:
+              <select value={jumpsMode} onChange={onJumpsModeChange}>
+                <option value="individual">
+                  Treat as individual notes (jumps count as 2, bracket jumps
+                  count as 3+)
+                </option>
+                <option value="jumps">
+                  Treat as jumps (jumps & bracket jumps count as 2)
+                </option>
+                <option value="brackets">
+                  Treat as brackets (jumps count as 1, bracket jumps count as 2)
+                </option>
               </select>
             </label>
           </div>
