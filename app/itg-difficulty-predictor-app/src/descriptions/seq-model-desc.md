@@ -13,7 +13,8 @@ This model does a bit worse than the simple 3-feature model in terms of raw numb
 
 - Patterns don't affect difficulty predictions
   - This means that tech (XO, FS, BR, DS, etc.), rhythms, candle usage, etc. are not taken into account by this model.
-- This model seems to underrate super long hard stuff. For example, it gives [21] XS Project Collection Full a rating of 18.51.
+- This model seems to underrate super long hard stuff. For example, it gives [21] XS Project Collection Full a rating of 18.64.
+- This model seems to underrate charts whose difficulty comes from very short, fast, and isolated bursts. For example, it gives [13] Mr. Saxobeat a rating of 10.54.
 - This model cannot assign ratings lower than 1.5 (due to the +0.5 shift).
 - Probably some other stuff IDK I'm not an ML guy
 
@@ -28,7 +29,7 @@ S = \ln\left(1 + \sum_{i=1}^{N} \left( a^{\left(1 + 0.01 e_{i}\right) d_{i}} - 1
 $$
 
 where
-- $a = 2.387$ is a model parameter determined via training
+- $a = 2.347$ is a model parameter determined via training
 - $e_{i}$ is the *exhaustion factor* at time $i$ into the chart
 
 This is based on the rough notion in stamina where the difficulty rating increases linearly with density and logarithmically with length. Notice how in the above equation, the logarithm and exponentiation cancel out such that with all else equal, $S$ is linearly proportional to the density. Additionally, if you set all the $d_i$'s to a constant value and then increase $N$, the summation will grow linearly and so $S$ will grow logarithmically, as desired.
@@ -41,8 +42,10 @@ $$
 
 where
 - $m_i$ is the *momentary exhaustion* at time $i$, which increases during high-density runs and decreases during breaks
-- $C_o = 0.004047$ ("overall exhaustion coefficient") is a model parameter determined via training
+- $C_o = 0.00006859$ ("overall exhaustion coefficient") is a model parameter determined via training.
 - $o_i = \ln\left(1+\sum_{j=1}^i d_j\right)$ is the *overall exhaustion* at time $i$, meant to quantify exhaustion that doesn't go away during breaks
+
+(Note for future self: $C_o$ ended up being so small as to make overall exhaustion contribute almost nothing to the difficulty rating. Would it be better to remove this component from the model completely?)
 
 $m_i$, in turn, is calculated via a recurrence relation:
 
@@ -50,16 +53,16 @@ $$
 \begin{align*}
 m_1 &= 0 \\
 m_{i+1} &= \begin{cases}
-  m_i \cdot C_r \left(1 - 0.57(1-C_r) \frac{d_i}{CP}\right) &\text{if } d_i \le CP \\
+  m_i \cdot \left(C_r + \left(1-C_r\right) \frac{d_i}{CP} \right) &\text{if } d_i \le CP \\
   m_i + e^{-m_i/C_e} \cdot (d_i - CP) &\text{if } d_i \gt CP
 \end{cases}
 \end{align*}
 $$
 
 where
-- $CP = 7.309$ ("critical power")
-- $C_r = 0.9702$ ("recovery coefficient")
-- $C_e = 4.66$ ("exhaustion coefficient")
+- $CP = 7.481$ ("critical power")
+- $C_r = 0.8597$ ("recovery coefficient")
+- $C_e = 4.352$ ("exhaustion coefficient")
 
 are all model parameters determined during training.
 
@@ -76,7 +79,7 @@ I ended up just letting the model's training process decide on a fixed $CP$ valu
 
 After $S$ is calculated, it is fed into a series of logistic regressions that each perform a binary classification based on whether, for the given $S$, the final chart rating should be greater than some value $r$. There are 35 classifiers used by this model, one for each of $r = 1, 2, ..., 35$. (I actually fit classifiers all the way up to $r = 42$, but those are a little less reliable due to the lack of data points above the thresholds for those classifiers.) Since these classifiers give probabilities for each class, we can then use those values to derive probabilities for each individual rating value, which we can then use as weights in a weighted average to calculate a final predicted rating.
 
-As it turns out, the logistic thresholds for the upper range of difficulties are quite evenly distributed. This means we could construct our own synthetic binary classifiers for $r \ge 36$ by linearly extrapolating the logistic thresholds, and then we can use those synthetic classifiers to rate charts 36 and beyond. For example, apparently 256 measures @ 500 BPM is a mid 47. Does that sound right? IDK probably.
+As it turns out, the logistic thresholds for the upper range of difficulties are quite evenly distributed. This means we could construct our own synthetic binary classifiers for $r \ge 36$ by linearly extrapolating the logistic thresholds, and then we can use those synthetic classifiers to rate charts 36 and beyond. For example, apparently 256 measures @ 500 BPM is a mid 48. Does that sound right? IDK probably.
 
 ### Training
 

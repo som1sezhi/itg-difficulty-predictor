@@ -26,7 +26,7 @@ ChartJS.register(
   Tooltip,
   Filler,
   Decimation,
-  Title
+  Title,
 );
 
 function Graph({
@@ -64,7 +64,7 @@ function Graph({
         },
       },
       y: {
-        max: Math.max(...data),
+        max: parseFloat(Math.max(...data).toPrecision(4)),
         title: {
           display: true,
           text: yLabel,
